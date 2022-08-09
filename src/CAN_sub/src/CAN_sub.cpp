@@ -21,7 +21,6 @@
 #define NODE_NAME "ackermann_sub_CAN" 
 #define _USE_MATH_DEFINES
 
-
 //using namespaces 
 //used for bind (uncomment below)
 using std::placeholders::_1;
@@ -62,19 +61,16 @@ private:
     queue<double> speedQ_incoming;
     queue<double> steeringQ_incoming;
 
-    //declare timer sharedptr obj
-
-    //helper functions --> can turn them into a package library (in ros package template)
-
     void drive_callback(const ackermann_msgs::msg::AckermannDriveStamped::ConstSharedPtr drive_submsgObj){   
         //double speed = drive_submsgObj->drive.speed;
         //double steering_angle = drive_submsgObj->drive.steering_angle;
 
-        speedQ_incoming.push(drive_submsgObj->drive.speed+1);
-        steeringQ_incoming.push(drive_submsgObj->drive.steering_angle+1);
+        speedQ_incoming.push(drive_submsgObj->drive.speed);
+        steeringQ_incoming.push(drive_submsgObj->drive.steering_angle);
     
         RCLCPP_INFO (this->get_logger(), "speed %f .... steering_angle %f", speedQ_incoming.front(),steeringQ_incoming.front()); 
-        speedQ_incoming.pop();
+        //comment the lines below when adding CAN stuff
+        speedQ_incoming.pop(); 
         steeringQ_incoming.pop();
     }
 
@@ -94,4 +90,10 @@ int main(int argc, char ** argv) {
     (concurrent) queue data 
 
     make a class that has all CAN and queue functions. Then make an instance for each stream of data and use corresponding object functions
+    add functions 
+
+    TODO:
+        set up wireless network
+
+    branch: CAN (first change made -> above TODO should not be in master branch)
 */
