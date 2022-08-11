@@ -1,0 +1,13 @@
+- write message/service interface package
+- launch package with all dependencies
+- ros2socketcan library package -> ament_cmake dependencies
+- threadsafe queue package -> "
+(need to go through cmake and ament_cmake tutorial) -> check f1tenth sim package cmakelists.txt
+
+STEPS:
+ - multithread the callbacks of timer and driver_callback OR use single thread executor on your own std::thread
+ - use threadsafe queue to do work around this
+
+ (use gdb/Valgrind)
+
+ for now: just compile everything within the package (look at ament_cmake -> add as library). Then move to another package
