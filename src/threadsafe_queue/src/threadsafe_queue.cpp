@@ -66,3 +66,6 @@ template <class T> bool threadsafe_queue<T>::empty() {
 //     }
     
 // }
+
+// Instantiate threadsafe_queue for the supported template type parameters
+template class threadsafe_queue<double>;
