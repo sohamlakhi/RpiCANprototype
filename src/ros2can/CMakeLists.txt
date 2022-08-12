@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(CAN_sub)
+project(ros2can)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -16,30 +16,35 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-foreach(PACKAGE 
-  ament_cmake 
-  rclcpp
-  ackermann_msgs
-  threadsafe_queue)
+find_package(ament_cmake REQUIRED)
+# uncomment the following section in order to fill in
+# further dependencies manually.
+# find_package(<dependency> REQUIRED)
 
-  find_package(${PACKAGE} REQUIRED)
-
-endforeach()
-
-# Include Cpp "include" directory
 include_directories(include)
+set (HEADER_FILES include/${PROJECT_NAME}/ros2can.hpp)
+add_library(${PROJECT_NAME}_lib src/ros2can.cpp ${HEADER_FILES})
 
-# Create Cpp executable
-add_executable(CAN_sub src/CAN_sub.cpp)
-ament_target_dependencies(CAN_sub 
-  rclcpp ackermann_msgs threadsafe_queue
+target_include_directories(${PROJECT_NAME}_lib
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
+ament_export_targets(${PROJECT_NAME}_lib HAS_LIBRARY_TARGET)
+
+install(
+  DIRECTORY include/${PROJECT_NAME}
+  DESTINATION include
 )
 
-# Install Cpp executables
-install(TARGETS
-  CAN_sub
-  DESTINATION lib/${PROJECT_NAME})
-
+install(
+  TARGETS ${PROJECT_NAME}_lib
+  EXPORT ${PROJECT_NAME}_lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -53,4 +58,3 @@ if(BUILD_TESTING)
 endif()
 
 ament_package()
-

@@ -26,3 +26,8 @@ run and debug (remove ros2socketCAN pkg for now)
 TOMORROW: 
 figure out cmake and compile code correctly
 figure out CAN stuff and get it to work 
+
+//ROS2 library --> https://answers.ros.org/question/357633/how-to-create-a-ros2-library/
+
+TODO: fix ros2can cmakelists and package
+      add packagea to CAN_sub
