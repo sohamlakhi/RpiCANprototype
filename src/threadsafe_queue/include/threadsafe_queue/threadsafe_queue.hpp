@@ -25,7 +25,8 @@ template <class T> class threadsafe_queue {
 
         //void swap(std::queue<T> swap_queue);
 
-        ~threadsafe_queue();
+        // ~threadsafe_queue();
+
     private:
 
         std::queue<T> queue;
