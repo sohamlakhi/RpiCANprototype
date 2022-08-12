@@ -35,8 +35,6 @@ ament_target_dependencies(CAN_sub
   rclcpp ackermann_msgs threadsafe_queue
 )
 
-target_link_libraries(CAN_sub threadsafe_queue::threadsafe_queue_lib)
-
 # Install Cpp executables
 install(TARGETS
   CAN_sub
