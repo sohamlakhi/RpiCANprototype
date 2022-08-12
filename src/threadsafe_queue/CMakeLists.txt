@@ -22,12 +22,10 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 
-include_directories(include)
-set (HEADER_FILES include/threadsafe_queue/threadsafe_queue.hpp)
-add_library(threadsafe_queue_lib src/threadsafe_queue.cpp ${HEADER_FILES})
+add_library(threadsafe_queue_lib INTERFACE)
 
 target_include_directories(threadsafe_queue_lib
-  PUBLIC
+  INTERFACE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:include>)
 

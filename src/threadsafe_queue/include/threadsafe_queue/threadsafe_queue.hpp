@@ -3,35 +3,86 @@
 #include <queue>
 #include <mutex>
 
-template <class T> class threadsafe_queue {
-    public:
-        //constructor
-        threadsafe_queue() = default;
+using namespace std;
 
-        T front();
+template<class T>
+class threadsafe_queue {
 
-        int size();
+public:
 
-        bool empty();
+	// constructor
+	threadsafe_queue() = default;
 
-        void push(T element);
+	T front() {
+		lock_guard <mutex> lg(m);
 
-        void pop();
+		T front_value = 0.0;
 
-        /*
-            @brief -> retrieve front value and pop element
-        */
-        T dequeue();
+		if (!queue.empty()) {
+			front_value = queue.front();
+		}
 
-        //void swap(std::queue<T> swap_queue);
+		return front_value;
+	}
 
-        // ~threadsafe_queue();
+	int size() {
+		lock_guard <mutex> lg(m);
 
-    private:
+		return queue.size();
+	}
 
-        std::queue<T> queue;
-        std::mutex m;
+	bool empty() {
+		lock_guard <mutex> lg(m);
+
+		return queue.empty();
+	}
+
+	void push(T element) {
+		lock_guard <mutex> lg(m);
+
+		queue.push(element);
+	}
+
+	void pop() {
+		lock_guard <mutex> lg(m);
+
+		if (!queue.empty()) {
+			queue.pop();
+		}
+	}
+
+	/*
+		@brief -> retrieve front value and pop element
+	*/
+	T dequeue() {
+		lock_guard <mutex> lg(m);
+
+		T front_value = 0.0;
+
+		if (!queue.empty()) {
+			front_value = queue.front();
+			queue.pop();
+		}
+
+		return front_value;
+	}
+
+	void swap(std::queue <T> swap_queue) {
+		lock_guard <mutex> lg(m);
+
+		if (!queue.empty()) {
+			queue.pop();
+		}
+
+	}
+
+	// ~threadsafe_queue();
+
+private:
+
+	std::queue <T> queue;
+	std::mutex m;
 
 };
 
-//TODO: you can use object/struct return type to return an object with boolean and front_value for tryDequeue
+// TODO: you can use object/struct return type to return an object with boolean and front_value for tryDequeue
