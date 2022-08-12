@@ -32,3 +32,5 @@ template <class T> class threadsafe_queue {
         std::mutex m;
 
 };
+
+//TODO: you can use object/struct return type to return an object with boolean and front_value for tryDequeue

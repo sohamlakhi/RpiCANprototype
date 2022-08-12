@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(ros2socketCAN)
+project(threadsafe_queue)
 
 # Default to C99
 if(NOT CMAKE_C_STANDARD)
@@ -20,6 +20,32 @@ find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+
+
+include_directories(include)
+set (HEADER_FILES include/threadsafe_queue/threadsafe_queue.hpp)
+add_library(threadsafe_queue_lib src/threadsafe_queue.cpp ${HEADER_FILES})
+
+target_include_directories(threadsafe_queue_lib
+  PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>)
+
+ament_export_targets(threadsafe_queue_lib HAS_LIBRARY_TARGET)
+
+install(
+  DIRECTORY include/threadsafe_queue
+  DESTINATION include
+)
+
+install(
+  TARGETS threadsafe_queue_lib
+  EXPORT threadsafe_queue_lib
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -7,6 +7,7 @@
 //#include <vector> /// CHECK: might cause errors due to double header in linker
 #include <functional>
 //#include <queue> //for queues
+#include <thread>
 
 //ROS related headers
 #include "rclcpp/rclcpp.hpp"
@@ -15,7 +16,7 @@
 
 
 //headers to code written by you
-#include "CAN_sub/threadsafe_queue.hpp"
+#include "threadsafe_queue/threadsafe_queue.hpp"
 
 //other macros
 #define NODE_NAME "ackermann_sub_CAN" 
@@ -28,6 +29,10 @@ using namespace std;
 using namespace std::chrono_literals;
 
 
+
+
+
+
 class CAN_drive_sub : public rclcpp::Node {
 // Implement Reactive Follow Gap on the car
 // This is just a template, you are free to implement your own node!
@@ -35,15 +40,23 @@ class CAN_drive_sub : public rclcpp::Node {
 public:
     CAN_drive_sub() : Node(NODE_NAME) {
         
-        /// TODO: create ROS subscribers and publishers
-        //initialise subscriber sharedptr obj
+        //Initialise callback groups
+        drive_cb_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+        timer_cb_group_ = create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+        //setup subscriptionoptions -> need to do this to pass the callbackgroup to the subscription object
+        rclcpp::SubscriptionOptions option_drive;
+        option_drive.callback_group = drive_cb_group_;
         
-        subscription_drive = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(drive_topic, 1000, bind(&CAN_drive_sub::drive_callback, this, _1));
+
+        //initialise subscriber sharedptr obj 
+        //TODO: add 
+        subscription_drive = this->create_subscription<ackermann_msgs::msg::AckermannDriveStamped>(drive_topic, 1000, bind(&CAN_drive_sub::drive_callback, this, _1), option_drive);
+
         //initialise publisher sharedptr obj
         //publisher_drive = this->create_publisher<ackermann_msgs::msg::AckermannDriveStamped>(drive_topic, 10);
 
         //initialise wall timer sharedptr object
-        timer_ = this->create_wall_timer(500ms, bind(&CAN_drive_sub::timer_callback, this));//time between every dequeue
+        timer_ = this->create_wall_timer(500ms, bind(&CAN_drive_sub::timer_callback, this), timer_cb_group_);//time between every dequeue
 
         RCLCPP_INFO (this->get_logger(), "%s node has been launched", NODE_NAME);
 
@@ -60,23 +73,36 @@ private:
     //declare timer sharedptr obj
     rclcpp::TimerBase::SharedPtr timer_;
 
+    //declare callback groups
+    rclcpp::CallbackGroup::SharedPtr drive_cb_group_;
+    rclcpp::CallbackGroup::SharedPtr timer_cb_group_;
+
     //declare queues
     threadsafe_queue<double> speedQ_incoming;
     threadsafe_queue<double> steeringQ_incoming;
     
 
+    string string_thread_id() {
+        auto hashed = hash<thread::id>()(this_thread::get_id());
+        return to_string(hashed);
+    }
+    
     void drive_callback(const ackermann_msgs::msg::AckermannDriveStamped::ConstSharedPtr drive_submsgObj){   
         //double speed = drive_submsgObj->drive.speed;
         //double steering_angle = drive_submsgObj->drive.steering_angle;
 
         speedQ_incoming.push(drive_submsgObj->drive.speed);
         steeringQ_incoming.push(drive_submsgObj->drive.steering_angle);
+
+        //thread id
+        RCLCPP_INFO(this->get_logger(),"THREAD %s (drive)" + string_thread_id());
     
         //RCLCPP_INFO (this->get_logger(), "speed %f .... steering_angle %f", speedQ_incoming.front(),steeringQ_incoming.front()); 
         //comment the lines below when adding CAN stuff
         // speedQ_incoming.pop(); 
         // steeringQ_incoming.pop();
     }
+
     //TODO: debug by printing 
     void timer_callback() {   
         //add CAN stuff here
@@ -94,10 +120,12 @@ private:
                     //pass to CAN function as parameter
 
                     RCLCPP_INFO (this->get_logger(), "speed (DQ) %f ", speed); 
+                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
                 }
                 else {
                     //send empty CAN frame
                     RCLCPP_INFO (this->get_logger(), "speed (DQ) %s ", "empty"); 
+                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
                 }
                 state = 1;
             }
@@ -113,10 +141,12 @@ private:
                     //pass to CAN function as parameter
 
                     RCLCPP_INFO (this->get_logger(), "steering (DQ) %f ", steering); 
+                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
                 }
                 else {
                     //send empty CAN frame
                     RCLCPP_INFO (this->get_logger(), "steering (DQ) %s ", "empty"); 
+                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
                 }
 
                 state = 2;
@@ -127,6 +157,7 @@ private:
                 //pass it to CAN send function
 
                 RCLCPP_INFO (this->get_logger(), "steering (DQ) %s ", "delimiter"); 
+                RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
 
                 state = 0;
             }
@@ -138,11 +169,22 @@ private:
 
 //TODO: multithread and spin here
 int main(int argc, char ** argv) {
+    // rclcpp::init(argc, argv);
+    // auto node_ptr = make_shared<CAN_drive_sub>(); // initialise node pointer
+    // rclcpp::spin(node_ptr);
+    // rclcpp::shutdown();
+    // return 0;
+
     rclcpp::init(argc, argv);
     auto node_ptr = make_shared<CAN_drive_sub>(); // initialise node pointer
-    rclcpp::spin(node_ptr);
+    
+    rclcpp::executors::MultiThreadedExecutor executor;
+    executor.add_node(node_ptr);
+    executor.spin();
+
     rclcpp::shutdown();
     return 0;
+    
 }
 
 /*

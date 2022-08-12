@@ -11,3 +11,18 @@ STEPS:
  (use gdb/Valgrind)
 
  for now: just compile everything within the package (look at ament_cmake -> add as library). Then move to another package
+
+ Multithread example -> Implemented Multithreaded Executor example #251
+                    -> Add an example using multithreaded executors and callback groups #208
+                    read callback groups from ros2 documentation
+
+TRY: Mutually exclusive and Rentrant callback groups
+
+You're using thread-safe queues just to be sure
+
+add multithread stuff, edit cmakelists and packagexml, commit to git
+run and debug (remove ros2socketCAN pkg for now)
+
+TOMORROW: 
+figure out cmake and compile code correctly
+figure out CAN stuff and get it to work 
