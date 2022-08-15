@@ -8,6 +8,13 @@
 #include <functional>
 //#include <queue> //for queues
 #include <thread>
+//#include <cstdio.h>//for string representation
+
+//debugging
+#include <assert.h>
+
+//CAN include header
+//#include "linux/can/raw.h" //for packing and passing can frame 
 
 //ROS related headers
 #include "rclcpp/rclcpp.hpp"
@@ -17,10 +24,16 @@
 
 //headers to code written by you
 #include "threadsafe_queue/threadsafe_queue.hpp"
+#include "ros2can/ros2can.hpp"
 
 //other macros
 #define NODE_NAME "ackermann_sub_CAN" 
 #define _USE_MATH_DEFINES
+#define DELIM 255
+#define EMPTY 256
+#define SPEED_CAN_ID 0x20
+#define STEERING_CAN_ID 0x10
+#define DELIM_CAN_ID 0x50
 
 //using namespaces 
 //used for bind (uncomment below)
@@ -81,7 +94,7 @@ private:
     threadsafe_queue<double> speedQ_incoming;
     threadsafe_queue<double> steeringQ_incoming;
     
-
+    //TODO: comment out after debugging
     string string_thread_id() {
         auto hashed = hash<thread::id>()(this_thread::get_id());
         return to_string(hashed);
@@ -103,30 +116,48 @@ private:
         // steeringQ_incoming.pop();
     }
 
+    //write function to convert data to uint array & pass to can_frame write function
+    //use assert to ensure sizeof(data_frame.data) <= 8 
+    //might have to remove trailing '/0'
+    void doubleToCAN (ros2can& canObj, double data, uint32_t can_id) {
+        sprintf((char *)canObj.data_frame.data, "%f", data); //TODO: might have to change method of bit manipulation (might have to use reinterpret_cast with unsigned char * --> which is just unsigned int8)
+        canObj.data_frame.can_dlc = sizeof(data); //TODO: check for size
+        canObj.data_frame.can_id = can_id;
+    } 
+
     //TODO: debug by printing 
     void timer_callback() {   
         //add CAN stuff here
         //dequeue here and use state machine to send over CAN
 
         //write state machine to interleave the data over CAN
+
+        //struct can_frame data_frame; //TODO: global variable OR turn this to static private OR allocate on the heap and explicitly destroy to improve runtime 
+        ros2can canObj;
+
         int state = 0;
         while (!speedQ_incoming.empty() || !steeringQ_incoming.empty()) {
+
             if (state == 0) {
                 //TODO: replace if-else with ternary operator
                 //check and send speed
-                double speed;
-                if (!speedQ_incoming.empty()) {
-                    speed = speedQ_incoming.dequeue();
-                    //pass to CAN function as parameter
+                // double speed;
+                // if (!speedQ_incoming.empty()) {
+                //     speed = speedQ_incoming.dequeue();
+                //     //pass to CAN function as parameter
 
-                    RCLCPP_INFO (this->get_logger(), "speed (DQ) %f ", speed); 
-                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
-                }
-                else {
-                    //send empty CAN frame
-                    RCLCPP_INFO (this->get_logger(), "speed (DQ) %s ", "empty"); 
-                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
-                }
+                //     RCLCPP_INFO (this->get_logger(), "speed (DQ) %f ", speed); 
+                //     RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
+                // }
+                // else {
+                //     //send empty CAN frame
+                //     RCLCPP_INFO (this->get_logger(), "speed (DQ) %s ", "empty"); 
+                //     RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
+                // }
+
+                //CAN API implementation
+                speedQ_incoming.empty() ? doubleToCAN(canObj, EMPTY, SPEED_CAN_ID) : doubleToCAN(canObj, speedQ_incoming.dequeue(), SPEED_CAN_ID);
+                canObj.send();
                 state = 1;
             }
 
@@ -135,32 +166,41 @@ private:
 
                 //TODO: replace if-else with ternary operator
                 //check and send speed
-                double steering;
-                if (!steeringQ_incoming.empty()) {
-                    steering = steeringQ_incoming.dequeue();
-                    //pass to CAN function as parameter
+                // double steering;
+                // if (!steeringQ_incoming.empty()) {
+                //     steering = steeringQ_incoming.dequeue();
+                //     //pass to CAN function as parameter
 
-                    RCLCPP_INFO (this->get_logger(), "steering (DQ) %f ", steering); 
-                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
-                }
-                else {
-                    //send empty CAN frame
-                    RCLCPP_INFO (this->get_logger(), "steering (DQ) %s ", "empty"); 
-                    RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
-                }
+                //     RCLCPP_INFO (this->get_logger(), "steering (DQ) %f ", steering); 
+                //     RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
+                // }
+                // else {
+                //     //send empty CAN frame
+                //     RCLCPP_INFO (this->get_logger(), "steering (DQ) %s ", "empty"); 
+                //     RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
+                // }
 
+                steeringQ_incoming.empty() ? doubleToCAN(canObj, EMPTY, STEERING_CAN_ID) : doubleToCAN(canObj, steeringQ_incoming.dequeue(), STEERING_CAN_ID);
+                canObj.send();
                 state = 2;
+                RCLCPP_INFO(this->get_logger(),"steering angle %f", atof((char *)canObj.data_frame.data));
             }
 
             if (state == 2) {
                 //send full 8byte message as delimiter
                 //pass it to CAN send function
 
-                RCLCPP_INFO (this->get_logger(), "steering (DQ) %s ", "delimiter"); 
-                RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
+                // RCLCPP_INFO (this->get_logger(), "steering (DQ) %s ", "delimiter"); 
+                // RCLCPP_INFO(this->get_logger(),"THREAD %s" + string_thread_id());
+
+                doubleToCAN(canObj, DELIM, DELIM_CAN_ID);
+                canObj.send();
 
                 state = 0;
             }
+
+            //TODO: get rid of empty frame and change CAN_id instead and compare that to differentiate between speed and steering values
+            //can remove last frame id
         }
         
     }
@@ -204,4 +244,6 @@ int main(int argc, char ** argv) {
     NOTE: queues need to be concurrent safe (either do it in python or C++ or any other language since ROS2 is lang agnostic)
     you can make a thread safe implementation by going down to the thread level using boost
     could use a boost queue itself instead
+
+    TODO: NOTE: values coded using ASCII char (need to decode accordingly --> use atof)
 */

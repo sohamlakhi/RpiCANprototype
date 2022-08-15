@@ -12,6 +12,7 @@
   <depend>rclcpp</depend>
   <depend>ackermann_msgs</depend>
   <depend>threadsafe_queue</depend>
+  <depend>ros2can</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

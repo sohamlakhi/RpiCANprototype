@@ -20,7 +20,8 @@ foreach(PACKAGE
   ament_cmake 
   rclcpp
   ackermann_msgs
-  threadsafe_queue)
+  threadsafe_queue
+  ros2can)
 
   find_package(${PACKAGE} REQUIRED)
 
@@ -32,7 +33,7 @@ include_directories(include)
 # Create Cpp executable
 add_executable(CAN_sub src/CAN_sub.cpp)
 ament_target_dependencies(CAN_sub 
-  rclcpp ackermann_msgs threadsafe_queue
+  rclcpp ackermann_msgs threadsafe_queue ros2can
 )
 
 # Install Cpp executables

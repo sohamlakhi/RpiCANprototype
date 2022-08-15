@@ -31,3 +31,12 @@ figure out CAN stuff and get it to work
 
 TODO: fix ros2can cmakelists and package
       add packagea to CAN_sub
+      fastforward merge through all git branches
+
+Martin's push with header only 'library' implementation
+
+WAYS TO ENCODE DATA:
+- use to_string to encode data as character array (which is integer mapped). Drop terminator, transmit, add terminator and decode
+- recast floating point as character array and use bitwise operators (shifting and masking) to extract and assign parts of the number. Do the reverse to decode number on arduino side 
+- use bitset to extract bitstream and individually assign
+- extract mantissa and exponent using re-interpret_cast (and figure some way of passing) https://stackoverflow.com/questions/5672960/how-can-i-extract-the-mantissa-of-a-double
